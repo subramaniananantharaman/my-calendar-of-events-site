@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Calendar of Events</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .user-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .search-bar {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-bar input {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            width: 100%;
+            max-width: 400px;
+            font-size: 14px;
+            outline: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Calendar Navigation */
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .calendar-nav button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .calendar-nav button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .current-month {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        /* Calendar Grid */
+        .calendar-container {
+            padding: 30px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .weekday-header {
+            text-align: center;
+            font-weight: 700;
+            color: #667eea;
+            padding: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .calendar-day {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            min-height: 120px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.4;
+            background: #fafafa;
+        }
+
+        .calendar-day.today {
+            border-color: #ff6b6b;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+        }
+
+        .day-number {
+            font-weight: 700;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .today .day-number {
+            color: #ff6b6b;
+        }
+
+        /* Events in Calendar */
+        .events-list {
+            max-height: 80px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #667eea #f0f0f0;
+        }
+
+        .events-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .events-list::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .events-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .event-item {
+            background: white;
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .event-item:hover {
+            transform: translateX(3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .event-item.color-blue { border-left-color: #4299e1; }
+        .event-item.color-green { border-left-color: #48bb78; }
+        .event-item.color-red { border-left-color: #f56565; }
+        .event-item.color-yellow { border-left-color: #ecc94b; }
+        .event-item.color-purple { border-left-color: #9f7aea; }
+        .event-item.color-pink { border-left-color: #ed64a6; }
+
+        .event-time {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .event-title {
+            color: #333;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-creator {
+            font-size: 10px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+            backdrop-filter: blur(4px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+            line-height: 1;
+        }
+
+        .close-button:hover {
+            color: #333;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #ff6b6b;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ee5a5a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        /* Collaborators Section */
+        .collaborators-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .collaborators-section h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .collaborator-list {
+            margin-bottom: 15px;
+        }
+
+        .collaborator-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .collaborator-email {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .remove-collaborator {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .remove-collaborator:hover {
+            background: #ee5a5a;
+        }
+
+        .add-collaborator-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .add-collaborator-form input {
+            flex: 1;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .info-box h4 {
+            color: #1976d2;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-box p {
+            color: #555;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .info-box ol {
+            color: #555;
+            font-size: 12px;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                gap: 5px;
+            }
+
+            .calendar-day {
+                min-height: 80px;
+                padding: 5px;
+            }
+
+            .day-number {
+                font-size: 14px;
+            }
+
+            .event-item {
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .current-month {
+                font-size: 18px;
+            }
+
+            .settings-button {
+                position: static;
+                margin-top: 10px;
+            }
+
+            .add-collaborator-form {
+                flex-direction: column;
+            }
+        }
+
+        /* Error Message */
+        .error-message {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+
+        const getDaysInMonth = (year, month) => {
+            return new Date(year, month + 1, 0).getDate();
+        };
+
+        const getFirstDayOfMonth = (year, month) => {
+            return new Date(year, month, 1).getDay();
+        };
+
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const isSameDay = (date1, date2) => {
+            return formatDate(date1) === formatDate(date2);
+        };
+
+        const generateId = () => {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        };
+
+        // ============================================
+        // USER SETUP MODAL
+        // ============================================
+        const UserSetupModal = ({ isOpen, onSave }) => {
+            const [name, setName] = useState('');
+            const [email, setEmail] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!name.trim()) {
+                    setError('Name is required');
+                    return;
+                }
+                if (!email.trim() || !email.includes('@')) {
+                    setError('Valid email is required');
+                    return;
+                }
+                onSave({ name, email });
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h2>Welcome! Set up your profile</h2>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label htmlFor="userName">
+                                    Your Name <span className="required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="userName"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Enter your name"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="userEmail">
+                                    Your Email <span className="required">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="userEmail"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Enter your email"
+                                />
+                            </div>
+                            {error && <div className="error-message">{error}</div>}
+                            <div className="form-actions">
+                                <button type="submit" className="btn btn-primary">
+                                    Continue
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================
+        // SETTINGS MODAL (COLLABORATORS)
+        // ============================================
+        const SettingsModal = ({ isOpen, onClose, collaborators, onAddCollaborator, onRemoveCollaborator }) => {
+            const [newEmail, setNewEmail] = useState('');
+            const [error, setError] = useState('');
+
+            const handleAddCollaborator = () => {
+                if (!newEmail.trim() || !newEmail.includes('@')) {
+                    setError('Please enter a valid email');
+                    return;
+                }
+                if (collaborators.includes(newEmail)) {
+                    setError('This email is already added');
+                    return;
+                }
+                onAddCollaborator(newEmail);
+                setNewEmail('');
+                setError('');
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Settings & Sharing</h2>
+                            <button className="close-button" onClick={onClose}>
+                                &times;
+                            </button>
+                        </div>
+
+                        <div className="collaborators-section">
+                            <h3>Collaborators</h3>
+
+                            {collaborators.length > 0 ? (
+                                <div className="collaborator-list">
+                                    {collaborators.map((email, index) => (
+                                        <div key={index} className="collaborator-item">
+                                            <span className="collaborator-email">{email}</span>
+                                            <button
+                                                className="remove-collaborator"
+                                                onClick={() => onRemoveCollaborator(email)}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="empty-state">
+                                    No collaborators added yet
+                                </div>
+                            )}
+
+                            <div className="add-collaborator-form">
+                                <input
+                                    type="email"
+                                    placeholder="Enter collaborator's email"
+                                    value={newEmail}
+                                    onChange={(e) => setNewEmail(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAddCollaborator()}
+                                />
+                                <button className="btn btn-primary" onClick={handleAddCollaborator}>
+                                    Add
+                                </button>
+                            </div>
+                            {error && <div className="error-message">{error}</div>}
+
+                            <div className="info-box">
+                                <h4>How to Share This Calendar</h4>
+                                <p>To make this calendar accessible to your collaborators:</p>
+                                <ol>
+                                    <li>Upload this HTML file to a web hosting service (GitHub Pages, Netlify, Vercel, Google Drive, Dropbox, etc.)</li>
+                                    <li>Share the public URL with the people you've added above</li>
+                                    <li>Everyone with the link can view and add events</li>
+                                    <li>Each person will be identified by their name when they create events</li>
+                                </ol>
+                                <p><strong>Note:</strong> This calendar stores data locally in each browser. For true real-time collaboration, consider using a backend service or cloud storage.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================
+        // EVENT MODAL COMPONENT
+        // ============================================
+        const EventModal = ({ isOpen, onClose, onSave, onDelete, event, selectedDate, currentUser }) => {
+            const [formData, setFormData] = useState({
+                title: '',
+                description: '',
+                date: '',
+                startTime: '',
+                endTime: '',
+                location: '',
+                color: 'blue',
+                createdBy: ''
+            });
+            const [errors, setErrors] = useState({});
+
+            useEffect(() => {
+                if (isOpen) {
+                    if (event) {
+                        setFormData(event);
+                    } else if (selectedDate) {
+                        setFormData({
+                            title: '',
+                            description: '',
+                            date: formatDate(selectedDate),
+                            startTime: '',
+                            endTime: '',
+                            location: '',
+                            color: 'blue',
+                            createdBy: currentUser.name
+                        });
+                    }
+                    setErrors({});
+                }
+            }, [isOpen, event, selectedDate, currentUser]);
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+                if (errors[name]) {
+                    setErrors(prev => ({ ...prev, [name]: '' }));
+                }
+            };
+
+            const validate = () => {
+                const newErrors = {};
+                if (!formData.title.trim()) {
+                    newErrors.title = 'Title is required';
+                }
+                if (!formData.date) {
+                    newErrors.date = 'Date is required';
+                }
+                if (formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
+                    newErrors.endTime = 'End time must be after start time';
+                }
+                setErrors(newErrors);
+                return Object.keys(newErrors).length === 0;
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (validate()) {
+                    onSave(formData);
+                }
+            };
+
+            const handleDelete = () => {
+                if (window.confirm('Are you sure you want to delete this event?')) {
+                    onDelete(event.id);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>{event ? 'Edit Event' : 'Add Event'}</h2>
+                            <button className="close-button" onClick={onClose}>
+                                &times;
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label htmlFor="title">
+                                    Title <span className="required">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="title"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="Enter event title"
+                                    autoFocus
+                                />
+                                {errors.title && <div className="error-message">{errors.title}</div>}
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="description">Description</label>
+                                <textarea
+                                    id="description"
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    placeholder="Enter event description"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="date">
+                                    Date <span className="required">*</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    id="date"
+                                    name="date"
+                                    value={formData.date}
+                                    onChange={handleChange}
+                                />
+                                {errors.date && <div className="error-message">{errors.date}</div>}
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="startTime">Start Time</label>
+                                    <input
+                                        type="time"
+                                        id="startTime"
+                                        name="startTime"
+                                        value={formData.startTime}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="endTime">End Time</label>
+                                    <input
+                                        type="time"
+                                        id="endTime"
+                                        name="endTime"
+                                        value={formData.endTime}
+                                        onChange={handleChange}
+                                    />
+                                    {errors.endTime && <div className="error-message">{errors.endTime}</div>}
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="location">Location</label>
+                                <input
+                                    type="text"
+                                    id="location"
+                                    name="location"
+                                    value={formData.location}
+                                    onChange={handleChange}
+                                    placeholder="Enter location (optional)"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="color">Event Color</label>
+                                <select
+                                    id="color"
+                                    name="color"
+                                    value={formData.color}
+                                    onChange={handleChange}
+                                >
+                                    <option value="blue">Blue</option>
+                                    <option value="green">Green</option>
+                                    <option value="red">Red</option>
+                                    <option value="yellow">Yellow</option>
+                                    <option value="purple">Purple</option>
+                                    <option value="pink">Pink</option>
+                                </select>
+                            </div>
+
+                            {event && event.createdBy && (
+                                <div className="form-group">
+                                    <label>Created by</label>
+                                    <input
+                                        type="text"
+                                        value={event.createdBy}
+                                        disabled
+                                        style={{ background: '#f0f0f0' }}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="form-actions">
+                                {event && (
+                                    <button type="button" className="btn btn-danger" onClick={handleDelete}>
+                                        Delete
+                                    </button>
+                                )}
+                                <button type="button" className="btn btn-secondary" onClick={onClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary">
+                                    {event ? 'Update' : 'Add'} Event
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================
+        // CALENDAR DAY COMPONENT
+        // ============================================
+        const CalendarDay = ({ date, isCurrentMonth, isToday, events, onDayClick, onEventClick }) => {
+            const dayClasses = `calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`;
+
+            return (
+                <div className={dayClasses} onClick={() => onDayClick(date)}>
+                    <div className="day-number">{date.getDate()}</div>
+                    {events.length > 0 && (
+                        <div className="events-list">
+                            {events.map(event => (
+                                <div
+                                    key={event.id}
+                                    className={`event-item color-${event.color}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEventClick(event);
+                                    }}
+                                >
+                                    <div className="event-time">
+                                        {event.startTime || 'All day'}
+                                    </div>
+                                    <div className="event-title">{event.title}</div>
+                                    {event.createdBy && (
+                                        <div className="event-creator">by {event.createdBy}</div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ============================================
+        // MAIN APP COMPONENT
+        // ============================================
+        const CalendarApp = () => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [events, setEvents] = useState([]);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [selectedEvent, setSelectedEvent] = useState(null);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [currentUser, setCurrentUser] = useState(null);
+            const [isUserSetupOpen, setIsUserSetupOpen] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [collaborators, setCollaborators] = useState([]);
+
+            // Load data from localStorage on mount
+            useEffect(() => {
+                const savedUser = localStorage.getItem('calendarUser');
+                if (savedUser) {
+                    setCurrentUser(JSON.parse(savedUser));
+                } else {
+                    setIsUserSetupOpen(true);
+                }
+
+                const savedEvents = localStorage.getItem('calendarEvents');
+                if (savedEvents) {
+                    setEvents(JSON.parse(savedEvents));
+                }
+
+                const savedCollaborators = localStorage.getItem('calendarCollaborators');
+                if (savedCollaborators) {
+                    setCollaborators(JSON.parse(savedCollaborators));
+                }
+            }, []);
+
+            // Save events to localStorage
+            useEffect(() => {
+                localStorage.setItem('calendarEvents', JSON.stringify(events));
+            }, [events]);
+
+            // Save collaborators to localStorage
+            useEffect(() => {
+                localStorage.setItem('calendarCollaborators', JSON.stringify(collaborators));
+            }, [collaborators]);
+
+            const handleUserSetup = (userData) => {
+                setCurrentUser(userData);
+                localStorage.setItem('calendarUser', JSON.stringify(userData));
+                setIsUserSetupOpen(false);
+            };
+
+            const handleAddCollaborator = (email) => {
+                setCollaborators([...collaborators, email]);
+            };
+
+            const handleRemoveCollaborator = (email) => {
+                setCollaborators(collaborators.filter(e => e !== email));
+            };
+
+            const goToPreviousMonth = () => {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+            };
+
+            const goToNextMonth = () => {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+            };
+
+            const handleDayClick = (date) => {
+                setSelectedDate(date);
+                setSelectedEvent(null);
+                setIsModalOpen(true);
+            };
+
+            const handleEventClick = (event) => {
+                setSelectedEvent(event);
+                setSelectedDate(null);
+                setIsModalOpen(true);
+            };
+
+            const handleSaveEvent = (eventData) => {
+                if (selectedEvent) {
+                    setEvents(events.map(e => e.id === selectedEvent.id ? { ...eventData, id: selectedEvent.id } : e));
+                } else {
+                    const newEvent = { ...eventData, id: generateId() };
+                    setEvents([...events, newEvent]);
+                }
+                setIsModalOpen(false);
+                setSelectedEvent(null);
+                setSelectedDate(null);
+            };
+
+            const handleDeleteEvent = (eventId) => {
+                setEvents(events.filter(e => e.id !== eventId));
+                setIsModalOpen(false);
+                setSelectedEvent(null);
+            };
+
+            const getEventsForDate = (date) => {
+                const dateStr = formatDate(date);
+                return events.filter(event => event.date === dateStr);
+            };
+
+            const filteredEvents = searchQuery
+                ? events.filter(event =>
+                    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    event.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                : events;
+
+            const generateCalendarDays = () => {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const firstDay = getFirstDayOfMonth(year, month);
+                const daysInMonth = getDaysInMonth(year, month);
+                const daysInPrevMonth = getDaysInMonth(year, month - 1);
+
+                const days = [];
+
+                for (let i = firstDay - 1; i >= 0; i--) {
+                    const date = new Date(year, month - 1, daysInPrevMonth - i);
+                    const dayEvents = searchQuery
+                        ? getEventsForDate(date).filter(e => filteredEvents.includes(e))
+                        : getEventsForDate(date);
+
+                    days.push({
+                        date,
+                        isCurrentMonth: false,
+                        isToday: isSameDay(date, new Date()),
+                        events: dayEvents
+                    });
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month, day);
+                    const dayEvents = searchQuery
+                        ? getEventsForDate(date).filter(e => filteredEvents.includes(e))
+                        : getEventsForDate(date);
+
+                    days.push({
+                        date,
+                        isCurrentMonth: true,
+                        isToday: isSameDay(date, new Date()),
+                        events: dayEvents
+                    });
+                }
+
+                const remainingDays = 42 - days.length;
+                for (let day = 1; day <= remainingDays; day++) {
+                    const date = new Date(year, month + 1, day);
+                    const dayEvents = searchQuery
+                        ? getEventsForDate(date).filter(e => filteredEvents.includes(e))
+                        : getEventsForDate(date);
+
+                    days.push({
+                        date,
+                        isCurrentMonth: false,
+                        isToday: isSameDay(date, new Date()),
+                        events: dayEvents
+                    });
+                }
+
+                return days;
+            };
+
+            const calendarDays = generateCalendarDays();
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            if (!currentUser) {
+                return (
+                    <UserSetupModal
+                        isOpen={isUserSetupOpen}
+                        onSave={handleUserSetup}
+                    />
+                );
+            }
+
+            return (
+                <div className="app-container">
+                    <div className="header">
+                        <button className="settings-button" onClick={() => setIsSettingsOpen(true)}>
+                            Settings & Sharing
+                        </button>
+                        <h1>Collaborative Calendar</h1>
+                        <div className="user-info">
+                            <span>Logged in as:</span>
+                            <span className="user-badge">{currentUser.name} ({currentUser.email})</span>
+                        </div>
+                        <div className="search-bar">
+                            <input
+                                type="text"
+                                placeholder="Search events by title or description..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="calendar-nav">
+                        <button onClick={goToPreviousMonth}>
+                            ← Previous
+                        </button>
+                        <div className="current-month">
+                            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                        </div>
+                        <button onClick={goToNextMonth}>
+                            Next →
+                        </button>
+                    </div>
+
+                    <div className="calendar-container">
+                        <div className="calendar-grid">
+                            {weekDays.map(day => (
+                                <div key={day} className="weekday-header">
+                                    {day}
+                                </div>
+                            ))}
+
+                            {calendarDays.map((day, index) => (
+                                <CalendarDay
+                                    key={index}
+                                    date={day.date}
+                                    isCurrentMonth={day.isCurrentMonth}
+                                    isToday={day.isToday}
+                                    events={day.events}
+                                    onDayClick={handleDayClick}
+                                    onEventClick={handleEventClick}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    <EventModal
+                        isOpen={isModalOpen}
+                        onClose={() => {
+                            setIsModalOpen(false);
+                            setSelectedEvent(null);
+                            setSelectedDate(null);
+                        }}
+                        onSave={handleSaveEvent}
+                        onDelete={handleDeleteEvent}
+                        event={selectedEvent}
+                        selectedDate={selectedDate}
+                        currentUser={currentUser}
+                    />
+
+                    <SettingsModal
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        collaborators={collaborators}
+                        onAddCollaborator={handleAddCollaborator}
+                        onRemoveCollaborator={handleRemoveCollaborator}
+                    />
+                </div>
+            );
+        };
+
+        // ============================================
+        // RENDER APP
+        // ============================================
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CalendarApp />);
+    </script>
+</body>
+</html>
